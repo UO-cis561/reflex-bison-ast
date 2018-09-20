@@ -26,14 +26,14 @@ namespace AST {
      * and leave it to the parser to build valid structures.
      */
     class Block : public ASTNode {
-        std::vector<ASTNode*> stmts;
+        std::vector<ASTNode*> stmts_;
     public:
-        explicit Block() : stmts{std::vector<ASTNode*>()} {}
-        void append(ASTNode* stmt) { stmts.push_back(stmt); }
+        explicit Block() : stmts_{std::vector<ASTNode*>()} {}
+        void append(ASTNode* stmt) { stmts_.push_back(stmt); }
         int eval(EvalContext& ctx) override;
         std::string str() override {
             std::stringstream ss;
-            for (ASTNode *stmt: stmts) {
+            for (ASTNode *stmt: stmts_) {
                 ss << stmt->str() << ";" << std::endl;
             }
             return ss.str();
@@ -41,14 +41,16 @@ namespace AST {
     };
 
     /* L_Expr nodes are AST nodes that can be evaluated for location.
-     * Most can also be evaluated for value.  An example of an L_Expr
-     * is an identifier, which can appear on the left hand or right hand
+     * Most can also be evaluated for value_.  An example of an L_Expr
+     * is an identifier, which can appear on the left_ hand or right_ hand
      * side of an assignment.  For example, in x = y, x is evaluated for
-     * location and y is evaluated for value.
+     * location and y is evaluated for value_.
      *
      * For now, a location is just a name, because that's what we index
      * the symbol table with.  In a full compiler, locations can be
-     * more complex.
+     * more complex, and typically in code generation we would have
+     * LExpr evaluate to an address in a register.
+     *
      * LExpr is abstract.  It's only concrete subclass for now is Ident,
      * but in a full OO language we would have LExprs that look like
      * a.b and a[2].
@@ -60,19 +62,19 @@ namespace AST {
 
     /* An assignment has an lvalue (location to be assigned to)
      * and an expression.  We evaluate the expression and place
-     * the value in the variable.
+     * the value_ in the variable.
      */
 
     class Assign : public ASTNode {
-        LExpr &lexpr;
-        ASTNode &rexpr;
+        LExpr &lexpr_;
+        ASTNode &rexpr_;
     public:
         Assign(LExpr &lexpr, ASTNode &rexpr) :
-           lexpr{lexpr}, rexpr{rexpr} {}
+           lexpr_{lexpr}, rexpr_{rexpr} {}
         std::string str() override {
             std::stringstream ss;
-            ss << lexpr.str() << " = "
-               << rexpr.str() << ";";
+            ss << lexpr_.str() << " = "
+               << rexpr_.str() << ";";
             return ss.str();
         }
 
@@ -81,25 +83,25 @@ namespace AST {
 
     /* Identifiers like x and literals like 42 are the
      * leaves of the AST.  A literal can only be evaluated
-     * for value (the 'eval' method), but an identifier
+     * for value_ (the 'eval' method), but an identifier
      * can also be evaluated for location (when we want to
      * store something in it).
      */
     class Ident : public LExpr {
-        std::string text;
+        std::string text_;
     public:
-        explicit Ident(std::string txt) : text{txt} {}
-        std::string str() override { return text; }
+        explicit Ident(std::string txt) : text_{txt} {}
+        std::string str() override { return text_; }
         int eval(EvalContext &ctx) override;
-        std::string l_eval(EvalContext& ctx) override { return text; }
+        std::string l_eval(EvalContext& ctx) override { return text_; }
     };
 
     class IntConst : public ASTNode {
-        int value;
+        int value_;
     public:
-        explicit IntConst(int v) : value{v} {}
-        std::string str() override { return std::to_string(value); }
-        int eval(EvalContext &ctx) override { return value; }
+        explicit IntConst(int v) : value_{v} {}
+        std::string str() override { return std::to_string(value_); }
+        int eval(EvalContext &ctx) override { return value_; }
     };
 
     // Virtual base class for +, -, *, /, etc
@@ -109,16 +111,16 @@ namespace AST {
         // eval() method
 
     protected:
-        ASTNode &left;
-        ASTNode &right;
+        ASTNode &left_;
+        ASTNode &right_;
         std::string opsym;
         BinOp(std::string sym, ASTNode &l, ASTNode &r) :
-                opsym{sym}, left{l}, right{r} {};
+                opsym{sym}, left_{l}, right_{r} {};
     public:
         std::string str() {
             std::stringstream ss;
-            ss << "(" << left.str() << " " << opsym << " "
-               << right.str() << ")";
+            ss << "(" << left_.str() << " " << opsym << " "
+               << right_.str() << ")";
             return ss.str();
         }
     };

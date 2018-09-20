@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
     Plus *e = new Plus(*e1, *z);
     std::cout << e->str() << std::endl;
     auto twelve = new IntConst(12);
-    // LExpr& lexpr = *twelve;  //! Integers aren't l-expressions
+    // LExpr& lexpr_ = *twelve;  //! Integers aren't l-expressions
     Assign *assignment = new Assign(*z,*twelve);
     std::cout << "Evaluating " << assignment->str() << std::endl;
     EvalContext ctx;

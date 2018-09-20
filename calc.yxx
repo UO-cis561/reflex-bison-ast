@@ -46,7 +46,7 @@
 %token <num> NUMBER
 // The following token values are not actually used ---
 //   all we really need is the name of the token,
-//   but we'll associate the matched text with them just
+//   but we'll associate the matched text_ with them just
 //   for simplicity
 %token <str> PLUS  MINUS TIMES DIV GETS
 
@@ -56,10 +56,10 @@
 
 // Precedence.  We are using an ambiguous expression grammar
 // for compactness.  We declare operator precedence from lowest
-// to highest, with associativity, e.g., MINUS is left associative
+// to highest, with associativity, e.g., MINUS is left_ associative
 // so a-b-c is (a-b)-c and not a-(b-c).
-%left MINUS PLUS
-%left TIMES DIV
+%left_ MINUS PLUS
+%left_ TIMES DIV
 
 %%
 
