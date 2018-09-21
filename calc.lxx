@@ -25,7 +25,7 @@ elif   { yylval.str = strdup(text()); return yy::parser::token::ELIF; }
 fi     { yylval.str = strdup(text()); return yy::parser::token::FI; }
 
 [[:digit:]]+  { yylval.num = atoi(text());   return yy::parser::token::NUMBER; }
-[[:alnum:]]+  { yylval.str = strdup(text()); return yy::parser::token::IDENT; }
+[[:alnum:]_]+  { yylval.str = strdup(text()); return yy::parser::token::IDENT; }
 
 
 
