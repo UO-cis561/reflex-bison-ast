@@ -33,6 +33,9 @@ namespace report {
     /* Additional diagnostic message, does not count against error limit */
     void note(const std::string& msg);
 
+    /* Is everything ok, or have we encountered errors? */
+    bool ok();
+
 };
 
 

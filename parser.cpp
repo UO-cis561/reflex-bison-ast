@@ -6,6 +6,7 @@
 #include "lex.yy.h"
 #include "ASTNode.h"
 #include "EvalContext.h"
+#include "Messages.h"
 
 class Driver {
 public:
@@ -16,7 +17,7 @@ public:
         // parser->set_debug_level(1); // 0 = no debugging, 1 = full tracing
         // std::cout << "Running parser\n";
         int result = parser->parse();
-        if (result == 0) {  // 0 == success, 1 == failure
+        if (result == 0 && report::ok()) {  // 0 == success, 1 == failure
             // std::cout << "Extracting result\n";
             if (root == nullptr) {
                 std::cout << "But I got a null result!  How?!\n";

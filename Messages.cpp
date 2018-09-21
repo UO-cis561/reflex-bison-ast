@@ -17,6 +17,10 @@ void bail()
 }
 
 /* An error that we can locate in the input */
+/* Note: An error message should look like this to work well
+ * with IDEs and other tools:
+ * /path/to/file:32:9: error: expression is not assignable
+ */
 void error_at(const yy::location& loc, const std::string& msg)
 {
     std::cerr << msg << " at " << loc << std::endl;
@@ -37,6 +41,11 @@ void error(const std::string& msg)
 /* Additional diagnostic message, does not count against error limit */
 void note(const std::string& msg) {
     std::cerr << msg << std::endl;
+}
+
+/* Are we ok? */
+bool ok() {
+    return (error_count == 0);
 }
 
 };
