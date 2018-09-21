@@ -16,6 +16,8 @@
 \*  { yylval.str = strdup(text()); return yy::parser::token::TIMES; }
 \-  { yylval.str = strdup(text()); return yy::parser::token::MINUS; }
 \/  { yylval.str = strdup(text()); return yy::parser::token::DIV; }
+\(  { yylval.str = strdup(text()); return yy::parser::token::LPAREN; }
+\)  { yylval.str = strdup(text()); return yy::parser::token::RPAREN; }
 if   { yylval.str = strdup(text()); return yy::parser::token::IF; }
 then   { yylval.str = strdup(text()); return yy::parser::token::THEN; }
 else   { yylval.str = strdup(text()); return yy::parser::token::ELSE; }

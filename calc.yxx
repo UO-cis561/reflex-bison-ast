@@ -50,6 +50,7 @@
 //   for simplicity
 %token <str> PLUS  MINUS TIMES DIV GETS
 %token <str> IF THEN ELSE FI ELIF
+%token <str> LPAREN RPAREN 
 
 // Abstract syntax tree nodes
 %type <node> expr leaf program stmt assignment
@@ -103,6 +104,7 @@ expr : expr PLUS expr  { $$ = new AST::Plus( *$1, *$3 ); dump($$); }
      | expr MINUS expr { $$ = new AST::Minus( *$1, *$3 ); dump($$); }
      | expr TIMES expr { $$ = new AST::Times( *$1, *$3 ); dump($$); }
      | expr DIV expr   { $$ = new AST::Div( *$1, *$3 ); dump($$); }
+     | LPAREN expr RPAREN { $$ = $2; }
      | leaf            { $$ = $1; }
      | error  leaf     { $$ = $2; }
      ;
