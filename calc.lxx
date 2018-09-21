@@ -12,12 +12,20 @@
 
 %%
 
-[[:digit:]]+  { yylval.num = atoi(text());   return yy::parser::token::NUMBER; }
-[[:alnum:]]+  { yylval.str = strdup(text()); return yy::parser::token::IDENT; }
 \+  { yylval.str = strdup(text()); return yy::parser::token::PLUS; }
 \*  { yylval.str = strdup(text()); return yy::parser::token::TIMES; }
 \-  { yylval.str = strdup(text()); return yy::parser::token::MINUS; }
 \/  { yylval.str = strdup(text()); return yy::parser::token::DIV; }
+if   { yylval.str = strdup(text()); return yy::parser::token::IF; }
+then   { yylval.str = strdup(text()); return yy::parser::token::THEN; }
+else   { yylval.str = strdup(text()); return yy::parser::token::ELSE; }
+elif   { yylval.str = strdup(text()); return yy::parser::token::ELIF; }
+fi     { yylval.str = strdup(text()); return yy::parser::token::FI; }
+
+[[:digit:]]+  { yylval.num = atoi(text());   return yy::parser::token::NUMBER; }
+[[:alnum:]]+  { yylval.str = strdup(text()); return yy::parser::token::IDENT; }
+
+
 
 =   { yylval.str = strdup(text()); return yy::parser::token::GETS; }
 [ \n]          {}

@@ -48,4 +48,17 @@ namespace AST {
         ctx.symtab[loc] = rvalue;
         return rvalue;
     }
+
+    // An 'if' statement, in this initial cut, evaluates its condition to an integer
+    // and chooses the true (then) part or the false (else) part depending on whether
+    // the integer is zero.
+    int If::eval(EvalContext &ctx) {
+        int cond = cond_.eval(ctx);
+        // Might as well use C's ill-considered interpretation of ints as booleans
+        if (cond) {
+            return truepart_.eval(ctx);
+        }
+        return falsepart_.eval(ctx);
+    }
 }
+

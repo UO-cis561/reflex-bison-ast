@@ -49,17 +49,19 @@
 //   but we'll associate the matched text_ with them just
 //   for simplicity
 %token <str> PLUS  MINUS TIMES DIV GETS
+%token <str> IF THEN ELSE FI ELIF
 
 // Abstract syntax tree nodes
 %type <node> expr leaf program stmt assignment
-%type <block> block
+%type <block> block if_alternatives
+%type <node> ifstmt
 
 // Precedence.  We are using an ambiguous expression grammar
 // for compactness.  We declare operator precedence from lowest
 // to highest, with associativity, e.g., MINUS is left_ associative
 // so a-b-c is (a-b)-c and not a-(b-c).
-%left_ MINUS PLUS
-%left_ TIMES DIV
+%left MINUS PLUS
+%left TIMES DIV
 
 %%
 
@@ -76,7 +78,20 @@ block: block stmt { $1->append($2); $$ = $1; }
 
 stmt: assignment { $$ = $1; }
     | expr { $$ = $1; }
+    | ifstmt { $$ = $1; }
     ;
+
+ifstmt:  IF expr THEN block if_alternatives FI
+ {    $$ = new AST::If(*$2, *$4, *$5);  } ;
+
+if_alternatives:   /* empty */  { $$ = new AST::Block(); };
+if_alternatives:   ELSE block   { $$ = $2; };
+if_alternatives:   ELIF expr THEN block if_alternatives
+ {  $$ = new AST::Block();
+    $$->append(new AST::If(*$2, *$4, *$5));
+ };
+
+
 
 assignment: IDENT GETS expr {
         AST::Ident* lhs = new AST::Ident($1);
