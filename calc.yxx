@@ -44,13 +44,10 @@
 // The following token values are actually used
 %token <str> IDENT
 %token <num> NUMBER
-// The following token values are not actually used ---
-//   all we really need is the name of the token,
-//   but we'll associate the matched text_ with them just
-//   for simplicity
-%token <str> PLUS  MINUS TIMES DIV GETS
-%token <str> IF THEN ELSE FI ELIF
-%token <str> LPAREN RPAREN 
+// The following tokens don't need values
+%token PLUS  MINUS TIMES DIV GETS
+%token IF THEN ELSE FI ELIF
+%token LPAREN RPAREN
 
 // Abstract syntax tree nodes
 %type <node> expr leaf program stmt assignment

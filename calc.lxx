@@ -11,18 +11,22 @@
 %option namespace=yy lexer=Lexer lex=yylex
 
 %%
+   /* Punctuation and keywords don't need values. */
+\+  {  return yy::parser::token::PLUS; }
+\*  {  return yy::parser::token::TIMES; }
+\-  {  return yy::parser::token::MINUS; }
+\/  {  return yy::parser::token::DIV; }
+\(  {  return yy::parser::token::LPAREN; }
+\)  {   return yy::parser::token::RPAREN; }
+if   {  return yy::parser::token::IF; }
+then   {  return yy::parser::token::THEN; }
+else   {  return yy::parser::token::ELSE; }
+elif   {  return yy::parser::token::ELIF; }
+fi     {  return yy::parser::token::FI; }
 
-\+  { yylval.str = strdup(text()); return yy::parser::token::PLUS; }
-\*  { yylval.str = strdup(text()); return yy::parser::token::TIMES; }
-\-  { yylval.str = strdup(text()); return yy::parser::token::MINUS; }
-\/  { yylval.str = strdup(text()); return yy::parser::token::DIV; }
-\(  { yylval.str = strdup(text()); return yy::parser::token::LPAREN; }
-\)  { yylval.str = strdup(text()); return yy::parser::token::RPAREN; }
-if   { yylval.str = strdup(text()); return yy::parser::token::IF; }
-then   { yylval.str = strdup(text()); return yy::parser::token::THEN; }
-else   { yylval.str = strdup(text()); return yy::parser::token::ELSE; }
-elif   { yylval.str = strdup(text()); return yy::parser::token::ELIF; }
-fi     { yylval.str = strdup(text()); return yy::parser::token::FI; }
+ /* Integer literals and identifiers do need semantic values,
+  * the integer value or the identifier text.
+  */
 
 [[:digit:]]+  { yylval.num = atoi(text());   return yy::parser::token::NUMBER; }
 [[:alnum:]_]+  { yylval.str = strdup(text()); return yy::parser::token::IDENT; }
