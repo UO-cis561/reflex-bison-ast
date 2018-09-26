@@ -26,10 +26,14 @@ namespace AST {
 
     class ASTNode {
     public:
-        virtual std::string str() = 0;
         virtual int eval(EvalContext &ctx) = 0;        // Immediate evaluation
         virtual void json(std::ostream& out, AST_print_context& ctx) = 0;  // Json string representation
-        // virtual std::string c_gen(CodegenContext &context) = 0;
+        std::string str() {
+            std::stringstream ss;
+            AST_print_context ctx;
+            json(ss, ctx);
+            return ss.str();
+        }
     protected:
         void json_indent(std::ostream& out, AST_print_context& ctx);
         void json_head(std::string node_kind, std::ostream& out, AST_print_context& ctx);
@@ -48,14 +52,7 @@ namespace AST {
         void append(ASTNode* stmt) { stmts_.push_back(stmt); }
         int eval(EvalContext& ctx) override;
         void json(std::ostream& out, AST_print_context& ctx) override;
-        std::string str() override {
-            std::stringstream ss;
-            for (ASTNode *stmt: stmts_) {
-                ss << stmt->str() << ";" << std::endl;
-            }
-            return ss.str();
-        }
-    };
+     };
 
     /* L_Expr nodes are AST nodes that can be evaluated for location.
      * Most can also be evaluated for value_.  An example of an L_Expr
@@ -89,13 +86,6 @@ namespace AST {
         Assign(LExpr &lexpr, ASTNode &rexpr) :
            lexpr_{lexpr}, rexpr_{rexpr} {}
         void json(std::ostream& out, AST_print_context& ctx) override;
-        std::string str() override {
-            std::stringstream ss;
-            ss << lexpr_.str() << " = "
-               << rexpr_.str() << ";";
-            return ss.str();
-        }
-
         int eval(EvalContext& ctx) override;
     };
 
@@ -107,13 +97,6 @@ namespace AST {
         explicit If(ASTNode &cond, Block &truepart, Block &falsepart) :
             cond_{cond}, truepart_{truepart}, falsepart_{falsepart} { };
         void json(std::ostream& out, AST_print_context& ctx) override;
-        std::string str() override {
-            return "if " + cond_.str() + " {\n" +
-                truepart_.str() + "\n" +
-                "} else {\n" +
-                falsepart_.str() + "\n" +
-                "}\n";
-        }
         int eval(EvalContext& ctx) override;
 
     };
@@ -129,7 +112,6 @@ namespace AST {
     public:
         explicit Ident(std::string txt) : text_{txt} {}
         void json(std::ostream& out, AST_print_context& ctx) override;
-        std::string str() override { return text_; }
         int eval(EvalContext &ctx) override;
         std::string l_eval(EvalContext& ctx) override { return text_; }
     };
@@ -139,13 +121,11 @@ namespace AST {
     public:
         explicit IntConst(int v) : value_{v} {}
         void json(std::ostream& out, AST_print_context& ctx) override;
-        std::string str() override { return std::to_string(value_); }
         int eval(EvalContext &ctx) override { return value_; }
     };
 
     // Virtual base class for +, -, *, /, etc
     class BinOp : public ASTNode {
-    public:
         // each subclass must override the inherited
         // eval() method
 
@@ -157,12 +137,6 @@ namespace AST {
                 opsym{sym}, left_{l}, right_{r} {};
     public:
         void json(std::ostream& out, AST_print_context& ctx) override;
-        std::string str() override {
-            std::stringstream ss;
-            ss << "(" << left_.str() << " " << opsym << " "
-               << right_.str() << ")";
-            return ss.str();
-        }
     };
 
     class Plus : public BinOp {
