@@ -14,11 +14,27 @@
 namespace AST {
     // Abstract syntax tree.  ASTNode is abstract base class for all other nodes.
 
+    // Json conversion and pretty-printing can pass around a print context object
+    // to keep track of indentation, and possibly other things.
+    class AST_print_context {
+    public:
+        int indent_; // Number of spaces to place on left, after each newline
+        AST_print_context() : indent_{0} {};
+        void indent() { ++indent_; }
+        void dedent() { --indent_; }
+    };
+
     class ASTNode {
     public:
         virtual std::string str() = 0;
         virtual int eval(EvalContext &ctx) = 0;        // Immediate evaluation
+        virtual void json(std::ostream& out, AST_print_context& ctx) = 0;  // Json string representation
         // virtual std::string c_gen(CodegenContext &context) = 0;
+    protected:
+        void json_indent(std::ostream& out, AST_print_context& ctx);
+        void json_head(std::string node_kind, std::ostream& out, AST_print_context& ctx);
+        void json_close(std::ostream& out, AST_print_context& ctx);
+        void json_child(std::string field, ASTNode& child, std::ostream& out, AST_print_context& ctx, char sep=',');
     };
 
     /* A block is a sequence of statements or expressions.
@@ -31,6 +47,7 @@ namespace AST {
         explicit Block() : stmts_{std::vector<ASTNode*>()} {}
         void append(ASTNode* stmt) { stmts_.push_back(stmt); }
         int eval(EvalContext& ctx) override;
+        void json(std::ostream& out, AST_print_context& ctx) override;
         std::string str() override {
             std::stringstream ss;
             for (ASTNode *stmt: stmts_) {
@@ -71,6 +88,7 @@ namespace AST {
     public:
         Assign(LExpr &lexpr, ASTNode &rexpr) :
            lexpr_{lexpr}, rexpr_{rexpr} {}
+        void json(std::ostream& out, AST_print_context& ctx) override;
         std::string str() override {
             std::stringstream ss;
             ss << lexpr_.str() << " = "
@@ -88,6 +106,7 @@ namespace AST {
     public:
         explicit If(ASTNode &cond, Block &truepart, Block &falsepart) :
             cond_{cond}, truepart_{truepart}, falsepart_{falsepart} { };
+        void json(std::ostream& out, AST_print_context& ctx) override;
         std::string str() override {
             return "if " + cond_.str() + " {\n" +
                 truepart_.str() + "\n" +
@@ -109,6 +128,7 @@ namespace AST {
         std::string text_;
     public:
         explicit Ident(std::string txt) : text_{txt} {}
+        void json(std::ostream& out, AST_print_context& ctx) override;
         std::string str() override { return text_; }
         int eval(EvalContext &ctx) override;
         std::string l_eval(EvalContext& ctx) override { return text_; }
@@ -118,6 +138,7 @@ namespace AST {
         int value_;
     public:
         explicit IntConst(int v) : value_{v} {}
+        void json(std::ostream& out, AST_print_context& ctx) override;
         std::string str() override { return std::to_string(value_); }
         int eval(EvalContext &ctx) override { return value_; }
     };
@@ -135,7 +156,8 @@ namespace AST {
         BinOp(std::string sym, ASTNode &l, ASTNode &r) :
                 opsym{sym}, left_{l}, right_{r} {};
     public:
-        std::string str() {
+        void json(std::ostream& out, AST_print_context& ctx) override;
+        std::string str() override {
             std::stringstream ss;
             ss << "(" << left_.str() << " " << opsym << " "
                << right_.str() << ")";
@@ -147,28 +169,28 @@ namespace AST {
     public:
         int eval(EvalContext& ctx) override;
         Plus(ASTNode &l, ASTNode &r) :
-                BinOp(std::string("+"),  l, r) {};
+                BinOp(std::string("Plus"),  l, r) {};
     };
 
     class Minus : public BinOp {
     public:
         int eval(EvalContext& ctx) override;
         Minus(ASTNode &l, ASTNode &r) :
-            BinOp(std::string("-"),  l, r) {};
+            BinOp(std::string("Minus"),  l, r) {};
     };
 
     class Times : public BinOp {
     public:
         int eval(EvalContext& ctx) override;
         Times(ASTNode &l, ASTNode &r) :
-                BinOp(std::string("*"),  l, r) {};
+                BinOp(std::string("Times"),  l, r) {};
     };
 
     class Div : public BinOp {
     public:
         int eval(EvalContext& ctx) override;
         Div (ASTNode &l, ASTNode &r) :
-                BinOp(std::string("/"),  l, r) {};
+                BinOp(std::string("Div"),  l, r) {};
     };
 
 
