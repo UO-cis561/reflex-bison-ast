@@ -13,8 +13,10 @@ void types_test() {
     LExpr *lexpr = new Ident("a");
     // LExpr &lref = Ident("b");  Can't because Ident("b") is a temporary
     LExpr& aref = *lexpr; // OK!
+    (void) aref; // Does this get rid of unused varible warning?
     Ident b = Ident("b");
     LExpr&  lref = b;  // OK!
+    (void) lref;
     return;
 }
 
@@ -38,6 +40,7 @@ void all_the_concrete_classes() {
     IntConst intconst = IntConst(5);
     Block block;
     Assign assign = Assign(ident, intconst);
+    (void) assign;  // Suppress unused variable warning
 
 
     return;

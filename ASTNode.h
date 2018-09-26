@@ -130,9 +130,9 @@ namespace AST {
         // eval() method
 
     protected:
+        std::string opsym;
         ASTNode &left_;
         ASTNode &right_;
-        std::string opsym;
         BinOp(std::string sym, ASTNode &l, ASTNode &r) :
                 opsym{sym}, left_{l}, right_{r} {};
     public:
