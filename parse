@@ -1,0 +1,6 @@
+#! /bin/sh
+#
+# Usage:  parse your_source.txt
+# Like run.sh, but the reference to cmake-build-debug/parser is fixed
+#
+cat $1 | cmake-build-debug/parser

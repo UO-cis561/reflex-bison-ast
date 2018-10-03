@@ -1,0 +1,102 @@
+{ "kind" : "Block","stmts_" : [
+    { "kind" : "Assign",
+        "lexpr_" : 
+        { "kind" : "Ident","text_" : "a"},
+        "rexpr_" : 
+        { "kind" : "IntConst","value_" : 0} }, 
+    { "kind" : "Assign",
+        "lexpr_" : 
+        { "kind" : "Ident","text_" : "b"},
+        "rexpr_" : 
+        { "kind" : "IntConst","value_" : 42} }, 
+    { "kind" : "If",
+        "cond_" : 
+        { "kind" : "Ident","text_" : "a"},
+        "truepart_" : 
+        { "kind" : "Block","stmts_" : [
+            { "kind" : "Assign",
+                "lexpr_" : 
+                { "kind" : "Ident","text_" : "x"},
+                "rexpr_" : 
+                { "kind" : "IntConst","value_" : 2} }]},
+        "falsepart_" : 
+        { "kind" : "Block","stmts_" : [
+            { "kind" : "If",
+                "cond_" : 
+                { "kind" : "Ident","text_" : "b"},
+                "truepart_" : 
+                { "kind" : "Block","stmts_" : [
+                    { "kind" : "Assign",
+                        "lexpr_" : 
+                        { "kind" : "Ident","text_" : "x"},
+                        "rexpr_" : 
+                        { "kind" : "IntConst","value_" : 3} }, 
+                    { "kind" : "If",
+                        "cond_" : 
+                        { "kind" : "Minus",
+                            "left_" : 
+                            { "kind" : "Ident","text_" : "b"},
+                            "right_" : 
+                            { "kind" : "Ident","text_" : "b"} },
+                        "truepart_" : 
+                        { "kind" : "Block","stmts_" : [
+                            { "kind" : "Assign",
+                                "lexpr_" : 
+                                { "kind" : "Ident","text_" : "y"},
+                                "rexpr_" : 
+                                { "kind" : "IntConst","value_" : 2} }]},
+                        "falsepart_" : 
+                        { "kind" : "Block","stmts_" : [
+                            { "kind" : "If",
+                                "cond_" : 
+                                { "kind" : "Ident","text_" : "a"},
+                                "truepart_" : 
+                                { "kind" : "Block","stmts_" : [
+                                    { "kind" : "Assign",
+                                        "lexpr_" : 
+                                        { "kind" : "Ident","text_" : "y"},
+                                        "rexpr_" : 
+                                        { "kind" : "IntConst","value_" : 3} }]},
+                                "falsepart_" : 
+                                { "kind" : "Block","stmts_" : [
+                                    { "kind" : "Assign",
+                                        "lexpr_" : 
+                                        { "kind" : "Ident","text_" : "y"},
+                                        "rexpr_" : 
+                                        { "kind" : "IntConst","value_" : 4} }]} }]} }]},
+                "falsepart_" : 
+                { "kind" : "Block","stmts_" : []} }]} }, 
+    { "kind" : "Assign",
+        "lexpr_" : 
+        { "kind" : "Ident","text_" : "z"},
+        "rexpr_" : 
+        { "kind" : "IntConst","value_" : 4} }, 
+    { "kind" : "If",
+        "cond_" : 
+        { "kind" : "Minus",
+            "left_" : 
+            { "kind" : "Ident","text_" : "b"},
+            "right_" : 
+            { "kind" : "Ident","text_" : "b"} },
+        "truepart_" : 
+        { "kind" : "Block","stmts_" : [
+            { "kind" : "Assign",
+                "lexpr_" : 
+                { "kind" : "Ident","text_" : "z"},
+                "rexpr_" : 
+                { "kind" : "IntConst","value_" : 5} }]},
+        "falsepart_" : 
+        { "kind" : "Block","stmts_" : []} }, 
+    { "kind" : "Plus",
+        "left_" : 
+        { "kind" : "Plus",
+            "left_" : 
+            { "kind" : "Ident","text_" : "x"},
+            "right_" : 
+            { "kind" : "Times",
+                "left_" : 
+                { "kind" : "Ident","text_" : "y"},
+                "right_" : 
+                { "kind" : "Ident","text_" : "z"} } },
+        "right_" : 
+        { "kind" : "IntConst","value_" : 5} }]}
