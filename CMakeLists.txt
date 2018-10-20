@@ -17,13 +17,13 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 
 add_custom_command(
         OUTPUT lex.yy.cpp lex.yy.h
-        COMMAND   reflex --bison-cc --bison-locations --header-file ${CMAKE_CURRENT_SOURCE_DIR}/calc.lxx
-        DEPENDS calc.lxx calc.tab.hxx
+        COMMAND   reflex --bison-cc --bison-locations --header-file ${CMAKE_CURRENT_SOURCE_DIR}/quack.lxx
+        DEPENDS quack.lxx quack.tab.hxx
 )
 add_custom_command(
-        OUTPUT calc.tab.cxx calc.tab.hxx location.hh position.hh stack.hh
-        COMMAND bison -d ${CMAKE_CURRENT_SOURCE_DIR}/calc.yxx
-        DEPENDS calc.yxx
+        OUTPUT quack.tab.cxx quack.tab.hxx location.hh position.hh stack.hh
+        COMMAND bison -d ${CMAKE_CURRENT_SOURCE_DIR}/quack.yxx
+        DEPENDS quack.yxx
 )
 
 include_directories(
@@ -34,10 +34,8 @@ include_directories(
 
 
 add_executable(parser
-        calc.tab.cxx lex.yy.cpp lex.yy.h
-        parser.cpp ASTNode.cpp ASTNode.h Messages.h Messages.cpp CodegenContext.cpp CodegenContext.h EvalContext.h)
+        quack.tab.cxx lex.yy.cpp lex.yy.h
 
-add_executable(test_ast  test_ast.cpp
-        ASTNode.cpp ASTNode.h CodegenContext.cpp CodegenContext.h)
+        parser.cpp Messages.h Messages.cpp CodegenContext.cpp CodegenContext.h)
 
 target_link_libraries(parser ${REFLEX_LIB})
