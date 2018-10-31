@@ -36,6 +36,6 @@ include_directories(
 add_executable(parser
         quack.tab.cxx lex.yy.cpp lex.yy.h
 
-        parser.cpp Messages.h Messages.cpp CodegenContext.cpp CodegenContext.h)
+        parser.cpp AST.h AST.cpp Messages.h Messages.cpp CodegenContext.cpp CodegenContext.h)
 
 target_link_libraries(parser ${REFLEX_LIB})
