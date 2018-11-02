@@ -30,9 +30,9 @@ int main()
     Driver driver(std::cin);
     bool parse_result = driver.parse();
     if (parse_result) {
-        std::cout << "Finished parse with no errors" << std::endl;
+        std::cerr << "Finished parse with no errors" << std::endl;
         driver.json(std::cout);
     } else {
-        std::cout << "Unable to parse!" << std::endl;
+        std::cerr << "Unable to parse!" << std::endl;
     }
 }
