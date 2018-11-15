@@ -203,6 +203,20 @@ namespace AST
                 LCA_table const& LCA){
         std::string LExpr_name = this->l_expr_->get_ident(table, classes);
         std::string RExpr_type = this->r_expr_->get_type(table, classes);
+        if (this->type_ != NULL){
+            std::string LExpr_type = this->type_->get_text();
+            if (table.find(LExpr_name) != table.end()) {
+                std::string prev = table[LExpr_name];
+                table[LExpr_name] = LCA.at(table[LExpr_name]).at(LExpr_type);
+                if (table[LExpr_name] != prev){
+                    changed = true;
+                }
+            }else{
+                table[LExpr_name] = LExpr_type;
+                changed = true;
+            }
+        }
+        
         this->r_expr_->check_decl_before_use(declared, table, classes);
         if (std::find(declared.begin(), declared.end(), LExpr_name) == declared.end()) {
             declared.push_back(LExpr_name);
@@ -227,6 +241,7 @@ namespace AST
                 bool &changed,
                 name_to_class_map const& classes, 
                 LCA_table const& LCA){
+        this->cond_->get_type(table, classes);
         std::vector<std::string> if_declared = declared;
         for (size_t i = 0; i<this->if_stmts_->size(); i++){
             Statement *stmt = (Statement*)((*if_stmts_)[i]);
@@ -241,21 +256,6 @@ namespace AST
         std::sort(else_declared.begin(), else_declared.end());
         declared.clear();
         std::set_intersection(if_declared.begin(), if_declared.end(), else_declared.begin(), else_declared.end(), std::back_inserter(declared));
-        std::cout << "If:";
-        for (std::string str : if_declared){
-            std::cout << str << " ";
-        }
-        std::cout << std::endl;
-        std::cout << "Else:";
-        for (std::string str : else_declared){
-            std::cout << str << " ";
-        }
-        std::cout << std::endl;
-        std::cout << "Intersect:";
-        for (std::string str : declared){
-            std::cout << str << " ";
-        }
-        std::cout << std::endl;
     }
     void While::append_symbol_table(
                 std::map<std::string, std::string> &table, 
@@ -330,6 +330,8 @@ namespace AST
                 exit(1);
             }
             std::vector<std::string> case_declared = declared;
+            std::map<std::string, std::string> case_table = table;
+            table[name] = type;
             for (Statement *stmt : typecase->get_stmts()){
                 stmt->append_symbol_table(table, case_declared, changed, classes, LCA);
             }

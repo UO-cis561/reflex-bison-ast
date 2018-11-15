@@ -2,26 +2,11 @@
 #include "AST.h"
 #include <map>
 
-
-
 bool TypeChecker::CheckClasses() {
     if (!this->driver_->is_parsed()) {
         return false;
     }
     AST::Block *classes = this->driver_->get_root()->get_classes();
-    class_names["Obj"] = new ClassTree("Obj");
-    class_names["Obj"]->noCycles = true;
-    class_names["Nothing"] = new ClassTree("Nothing");
-    class_names["Nothing"]->noCycles = true;
-    class_names["String"] = new ClassTree("String");
-    class_names["String"]->noCycles = true;
-    class_names["String"]->super = class_names["Obj"];
-    class_names["Int"] = new ClassTree("Int");
-    class_names["Int"]->noCycles = true;
-    class_names["Int"]->super = class_names["Obj"];
-    class_names["Boolean"] = new ClassTree("Boolean");
-    class_names["Boolean"]->noCycles = true;
-    class_names["Boolean"]->super = class_names["Obj"];
     
     for (size_t i=0; i<classes->size(); i++) {
         AST::Class *curr_class = (AST::Class*)((*classes)[i]);
@@ -48,35 +33,33 @@ bool TypeChecker::CheckClasses() {
                 return false;
             }
         }else{
-            class_names[name] = new ClassTree(name);
+            class_names[name] = new Class_Struct(name);
         }
         if (class_names.find(super) == class_names.end()) {
-            class_names[super] = new ClassTree(super);
+            class_names[super] = new Class_Struct(super);
         }
         class_names[name]->super = class_names[super];
     }
-    for (std::pair<std::string, ClassTree*> node : class_names){
+    for (std::pair<std::string, Class_Struct*> node : class_names){
         if (node.second->super == NULL && node.second->noCycles == false) {
             //Parent class has no super but is not Obj
             std::cerr << "Error: Class \"" << node.first << "\" was not defined" << std::endl;
             return false;
         }
     }
-    for (std::pair<std::string, ClassTree*> node : class_names){
-        ClassTree *curr = node.second;
+    for (std::pair<std::string, Class_Struct*> node : class_names){
+        Class_Struct *curr = node.second;
         if (curr->noCycles)
             continue;
-        ClassTree *curr2 = node.second->super;
+        Class_Struct *curr2 = node.second->super;
         while(!curr->noCycles && !curr2->noCycles){
             if (curr == curr2) {
                 std::cerr << "Error: Class hierarchy contains a cycle involving class \"" << curr->name << "\"" << std::endl;
                 return false;
             }
-            
             curr = curr->super;
             curr2 = curr2->super->super;
         }
-        
         curr = node.second;
         while (!curr->noCycles) {
             curr->noCycles = true;
@@ -93,7 +76,7 @@ void TypeChecker::FindLCAs() {
     }
     //Iterate through each class name to find all of its common ancestors
     for (name_to_class_map::iterator it = class_names.begin(); it != class_names.end(); it++) {
-        ClassTree *curr = it->second;
+        Class_Struct *curr = it->second;
         //Climb up through the current class's ancestors, adding them to its LCAs.
         while (curr != NULL) {
             LCA[it->first][curr->name] = curr->name;
@@ -125,7 +108,7 @@ bool TypeChecker::CheckMethodsAndTypes() {
             AST::Class *curr_class = (AST::Class*)((*classes)[i]);
             std::string class_name = curr_class->get_name();
             std::vector<std::string> declared_in_class;
-            ClassTree *class_node = class_names[class_name];
+            Class_Struct *class_node = class_names[class_name];
             class_node->symbol_table["this"] = class_name;
             declared_in_class.push_back("this");
             declared_in_class.push_back("true");
@@ -221,13 +204,35 @@ bool TypeChecker::CheckMethodsAndTypes() {
         }
         first_loop = false;
     }while(changed);
-    std::cout << "---Symbol Table---" << std::endl;
-    for (std::map<std::string, std::string>::iterator it = symbol_table.begin(); it != symbol_table.end(); it++) {
-        std::cout << it->first << "\t" << it->second << std::endl;
-    }
-    std::cout << "------------------" << std::endl;
+    do{
+        changed = false;
+        for (name_to_class_map::iterator class_it = class_names.begin(); class_it != class_names.end(); class_it++){
+            Class_Struct *curr = class_it->second;
+            if (curr->super != NULL){
+                Class_Struct *super = curr->super;
+                for (std::map<std::string, std::string>::iterator symbol_it = super->symbol_table.begin(); symbol_it != super->symbol_table.end(); symbol_it++){
+                    std::string name = symbol_it->first;
+                    std::string super_type = symbol_it->second;
+                    if (curr->symbol_table.find(name) == curr->symbol_table.end()){
+                        curr->symbol_table[name] = super_type;
+                        changed = true;
+                    }else{
+                        std::string derived_type = curr->symbol_table[name];
+                        if (class_names.find(derived_type) != class_names.end() && class_names.find(super_type) != class_names.end()){
+                            std::string ancestor = LCA[derived_type][super_type];
+                            if (ancestor != super_type){
+                                std::cerr << "Error: Class \"" << curr->name << "\" has a field \"" << name << ":" << derived_type 
+                                        << "\" that is not a sub-type of its parent's field \"" << name << ":" << super_type << "\"" << std::endl;
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }while(changed);
     std::cout << "-----Classes------" << std::endl;
-    for (std::map<std::string, ClassTree*>::iterator it = class_names.begin(); it != class_names.end(); it++) {
+    for (std::map<std::string, Class_Struct*>::iterator it = class_names.begin(); it != class_names.end(); it++) {
         std::cout << "class " << it->second->name;
         if (it->second->super != NULL && it->second->super->name != "Obj"){
             std::cout << " extends " << it->second->super->name;
@@ -254,5 +259,10 @@ bool TypeChecker::CheckMethodsAndTypes() {
             }
         }
     }
+    std::cout << "---Symbol Table---" << std::endl;
+    for (std::map<std::string, std::string>::iterator it = symbol_table.begin(); it != symbol_table.end(); it++) {
+        std::cout << it->first << ": " << it->second << std::endl;
+    }
+    std::cout << "------------------" << std::endl;
     return true;
 }

@@ -8,13 +8,13 @@
 #include <iostream>
 #include <algorithm>
 
-struct ClassTree{
+struct Class_Struct{
     std::string name;
-    ClassTree *super = NULL;
+    Class_Struct *super = NULL;
     bool noCycles = false;
     std::map<std::pair<std::string, std::vector<std::string>>, struct Method_Struct*> methods;
     std::map<std::string, std::string> symbol_table;
-    ClassTree(std::string name_in): name(name_in){}
+    Class_Struct(std::string name_in): name(name_in){}
 };
 
 struct Method_Struct{
@@ -24,7 +24,7 @@ struct Method_Struct{
     std::map<std::string, std::string> symbol_table;
 };
 
-typedef std::map<std::string, ClassTree*> name_to_class_map;
+typedef std::map<std::string, Class_Struct*> name_to_class_map;
 typedef std::map<std::string, std::map<std::string, std::string>> LCA_table;
 typedef std::pair<std::string, std::vector<std::string>> method_ident;
 typedef std::map<method_ident, std::string> method_to_type_map;
@@ -181,8 +181,8 @@ namespace AST
                 bool &changed,
                 name_to_class_map const& classes, 
                 LCA_table const& LCA){}
-        virtual std::string get_type(std::map<std::string, std::string> const& table, std::map<std::string, ClassTree*> classes) = 0;
-        virtual void check_decl_before_use(std::vector<std::string> &declared, std::map<std::string, std::string> const& table, std::map<std::string, ClassTree*> classes) = 0;
+        virtual std::string get_type(std::map<std::string, std::string> const& table, std::map<std::string, Class_Struct*> classes) = 0;
+        virtual void check_decl_before_use(std::vector<std::string> &declared, std::map<std::string, std::string> const& table, std::map<std::string, Class_Struct*> classes) = 0;
     };
     
     class Arguments : public ASTNode {
@@ -190,7 +190,7 @@ namespace AST
     public:
         void append(RExpr *arg);
         void json(std::ostream &out, unsigned int indent = 0);
-        std::vector<std::string> get_arg_types(std::map<std::string, std::string> const& table, std::map<std::string, ClassTree*> classes) {
+        std::vector<std::string> get_arg_types(std::map<std::string, std::string> const& table, std::map<std::string, Class_Struct*> classes) {
             std::vector<std::string> types;
             for (ASTNode *arg : args_) {
                 types.push_back(((RExpr*)arg)->get_type(table, classes));
@@ -292,8 +292,8 @@ namespace AST
     public:
         IntLit(unsigned int val): val_(val) {}
         void json(std::ostream &out, unsigned int indent = 0);
-        std::string get_type(std::map<std::string, std::string> const& table, std::map<std::string, ClassTree*> classes){ return "Int"; }
-        void check_decl_before_use(std::vector<std::string> &declared, std::map<std::string, std::string> const& table, std::map<std::string, ClassTree*> classes){}
+        std::string get_type(std::map<std::string, std::string> const& table, std::map<std::string, Class_Struct*> classes){ return "Int"; }
+        void check_decl_before_use(std::vector<std::string> &declared, std::map<std::string, std::string> const& table, std::map<std::string, Class_Struct*> classes){}
     };
 
     class StrLit : public RExpr {
@@ -301,8 +301,8 @@ namespace AST
     public:
         StrLit(std::string text): text_(text) {}
         void json(std::ostream &out, unsigned int indent = 0);
-        std::string get_type(std::map<std::string, std::string> const& table, std::map<std::string, ClassTree*> classes){ return "String"; }
-        void check_decl_before_use(std::vector<std::string> &declared, std::map<std::string, std::string> const& table, std::map<std::string, ClassTree*> classes){}
+        std::string get_type(std::map<std::string, std::string> const& table, std::map<std::string, Class_Struct*> classes){ return "String"; }
+        void check_decl_before_use(std::vector<std::string> &declared, std::map<std::string, std::string> const& table, std::map<std::string, Class_Struct*> classes){}
     };
 
     class LExpr : public RExpr {
@@ -312,35 +312,26 @@ namespace AST
         LExpr(Ident *name): obj_(NULL), name_(name) {}
         LExpr(RExpr *obj, Ident *name): obj_(obj), name_(name) {}
         void json(std::ostream &out, unsigned int indent = 0);
-        std::string get_type(std::map<std::string, std::string> const& table, std::map<std::string, ClassTree*> classes) { 
-            std::string ident = "";
-            if (obj_ != NULL) {
-                ident += obj_->get_type(table, classes) + ".";
-            }
-            ident += name_->get_text();
+        std::string get_type(std::map<std::string, std::string> const& table, std::map<std::string, Class_Struct*> classes) { 
+            std::string ident = name_->get_text();
             if (table.find(ident) != table.end()){
                 return table.at(ident);
             }else{
-               // return "Unknown0 " + ident;
                 return "";
             }
         }
-        std::string get_ident(std::map<std::string, std::string> const& table, std::map<std::string, ClassTree*> classes) {
-            std::string ident = "";
+        std::string get_ident(std::map<std::string, std::string> const& table, std::map<std::string, Class_Struct*> classes) {
             std::string name = name_->get_text();
             if (obj_ != NULL){
                 std::string type = obj_->get_type(table, classes);
-                ident += type + ".";
                 if (type == name){
                     std::cerr << "Error: Class and Variable both share identifier \"" << name << "\"" << std::endl;
                     exit(1);
                 }
             }
-            ident += name;
-            
-            return ident;
+            return name;
         }
-        void check_decl_before_use(std::vector<std::string> &declared, std::map<std::string, std::string> const& table, std::map<std::string, ClassTree*> classes){
+        void check_decl_before_use(std::vector<std::string> &declared, std::map<std::string, std::string> const& table, std::map<std::string, Class_Struct*> classes){
             std::string ident = this->get_ident(table, classes);
             if (std::find(declared.begin(), declared.end(), ident) == declared.end()) {
                 std::cerr << "Error: \"" << ident << "\" used before being declared" << std::endl;
@@ -356,24 +347,36 @@ namespace AST
     public:
         Call(RExpr *obj, Ident *mthd, Arguments *args): obj_(obj), mthd_(mthd), args_(args) {}
         void json(std::ostream &out, unsigned int indent = 0);
-        std::string get_type(std::map<std::string, std::string> const& table, std::map<std::string, ClassTree*> classes){ 
+        std::string get_type(std::map<std::string, std::string> const& table, std::map<std::string, Class_Struct*> classes){ 
             std::string mthd_name = mthd_->get_text();
             std::vector<std::string> arg_types;
             for (std::string type : args_->get_arg_types(table, classes)){
+                if (type == "") {
+                    return "";
+                }
                 arg_types.push_back(type);
             }
             std::pair<std::string, std::vector<std::string>> mthd_ident(mthd_name, arg_types);
             std::string class_name = obj_->get_type(table, classes);
             if (classes.find(class_name) != classes.end()){
-                ClassTree *node = classes[class_name];
+                Class_Struct *node = classes[class_name];
                 if (node->methods.find(mthd_ident) != node->methods.end()){
                     Method_Struct *mthd = node->methods[mthd_ident];
                     return mthd->symbol_table["return"];
+                }else{
+                    std::cerr << "Error: Method \"" << mthd_name << "(";
+                    std::string sep = "";
+                    for (std::string type : arg_types) {
+                        std::cerr << sep << type;
+                        sep = ", ";
+                    }
+                    std::cerr << ")\" does not exist in class \"" << class_name << "\"" << std::endl;
+                    exit(1);
                 }
             }
             return "";
         }
-        void check_decl_before_use(std::vector<std::string> &declared, std::map<std::string, std::string> const& table, std::map<std::string, ClassTree*> classes){
+        void check_decl_before_use(std::vector<std::string> &declared, std::map<std::string, std::string> const& table, std::map<std::string, Class_Struct*> classes){
             for (RExpr *arg : args_->get_args()) {
                 arg->check_decl_before_use(declared, table, classes);
             }
@@ -386,10 +389,10 @@ namespace AST
     public:
         Constructor(Ident *name, Arguments *args): name_(name), args_(args) {}
         void json(std::ostream &out, unsigned int indent = 0);
-        std::string get_type(std::map<std::string, std::string> const& table, std::map<std::string, ClassTree*> classes){
+        std::string get_type(std::map<std::string, std::string> const& table, std::map<std::string, Class_Struct*> classes){
             return name_->get_text();
         }
-        void check_decl_before_use(std::vector<std::string> &declared, std::map<std::string, std::string> const& table, std::map<std::string, ClassTree*> classes){
+        void check_decl_before_use(std::vector<std::string> &declared, std::map<std::string, std::string> const& table, std::map<std::string, Class_Struct*> classes){
             for (RExpr *arg : args_->get_args()) {
                 arg->check_decl_before_use(declared, table, classes);
             }
@@ -402,8 +405,8 @@ namespace AST
     public:
         And(RExpr *lhs, RExpr *rhs): lhs_(lhs), rhs_(rhs) {}
         void json(std::ostream &out, unsigned int indent = 0);
-        std::string get_type(std::map<std::string, std::string> const& table, std::map<std::string, ClassTree*> classes){ return "Boolean"; }
-        void check_decl_before_use(std::vector<std::string> &declared, std::map<std::string, std::string> const& table, std::map<std::string, ClassTree*> classes){
+        std::string get_type(std::map<std::string, std::string> const& table, std::map<std::string, Class_Struct*> classes){ return "Boolean"; }
+        void check_decl_before_use(std::vector<std::string> &declared, std::map<std::string, std::string> const& table, std::map<std::string, Class_Struct*> classes){
             lhs_->check_decl_before_use(declared, table, classes);
             rhs_->check_decl_before_use(declared, table, classes);
         }
@@ -415,8 +418,8 @@ namespace AST
     public:
         Or(RExpr *lhs, RExpr *rhs): lhs_(lhs), rhs_(rhs) {}
         void json(std::ostream &out, unsigned int indent = 0);
-        std::string get_type(std::map<std::string, std::string> const& table, std::map<std::string, ClassTree*> classes){ return "Boolean"; }
-        void check_decl_before_use(std::vector<std::string> &declared, std::map<std::string, std::string> const& table, std::map<std::string, ClassTree*> classes){
+        std::string get_type(std::map<std::string, std::string> const& table, std::map<std::string, Class_Struct*> classes){ return "Boolean"; }
+        void check_decl_before_use(std::vector<std::string> &declared, std::map<std::string, std::string> const& table, std::map<std::string, Class_Struct*> classes){
             lhs_->check_decl_before_use(declared, table, classes);
             rhs_->check_decl_before_use(declared, table, classes);
         }
@@ -427,8 +430,8 @@ namespace AST
     public:
         Not(RExpr *expr): expr_(expr) {}
         void json(std::ostream &out, unsigned int indent = 0);
-        std::string get_type(std::map<std::string, std::string> const& table, std::map<std::string, ClassTree*> classes){ return "Boolean"; }
-        void check_decl_before_use(std::vector<std::string> &declared, std::map<std::string, std::string> const& table, std::map<std::string, ClassTree*> classes){
+        std::string get_type(std::map<std::string, std::string> const& table, std::map<std::string, Class_Struct*> classes){ return "Boolean"; }
+        void check_decl_before_use(std::vector<std::string> &declared, std::map<std::string, std::string> const& table, std::map<std::string, Class_Struct*> classes){
             expr_->check_decl_before_use(declared, table, classes);
         }
     };
