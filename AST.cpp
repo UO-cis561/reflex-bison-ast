@@ -197,59 +197,108 @@ namespace AST
     }
     void Assignment::append_symbol_table(
                 std::map<std::string, std::string> &table, 
-                std::vector<std::string> &declared, 
+                std::vector<std::string> &declared,  
+                bool &changed,
                 name_to_class_map const& classes, 
                 LCA_table const& LCA, 
                 method_to_type_map const& methods){
         std::string LExpr_name = this->l_expr_->get_ident(table, methods);
         std::string RExpr_type = this->r_expr_->get_type(table, methods);
+        if (std::find(declared.begin(), declared.end(), LExpr_name) == declared.end()) {
+            declared.push_back(LExpr_name);
+        }
         if (classes.find(RExpr_type) != classes.end()) {
             if (table.find(LExpr_name) != table.end()) {
+                std::string prev = table[LExpr_name];
                 table[LExpr_name] = LCA.at(table[LExpr_name]).at(RExpr_type);
+                if (table[LExpr_name] != prev){
+                    changed = true;
+                }
             }else{
                 table[LExpr_name] = RExpr_type;
+                changed = true;
             }
         }
         
     }
     void If::append_symbol_table(
                 std::map<std::string, std::string> &table, 
-                std::vector<std::string> &declared, 
+                std::vector<std::string> &declared,  
+                bool &changed,
                 name_to_class_map const& classes, 
                 LCA_table const& LCA, 
                 method_to_type_map const& methods){
-    
+        for (size_t i = 0; i<this->if_stmts_->size(); i++){
+            Statement *stmt = (Statement*)((*if_stmts_)[i]);
+            stmt->append_symbol_table(table, declared, changed, classes, LCA, methods);
+        }
+        for (size_t i = 0; i<this->else_stmts_->size(); i++){
+            Statement *stmt = (Statement*)((*else_stmts_)[i]);
+            stmt->append_symbol_table(table, declared, changed, classes, LCA, methods);
+        }
     }
     void While::append_symbol_table(
                 std::map<std::string, std::string> &table, 
-                std::vector<std::string> &declared, 
+                std::vector<std::string> &declared,  
+                bool &changed,
                 name_to_class_map const& classes, 
                 LCA_table const& LCA, 
                 method_to_type_map const& methods){
-        
+        for (size_t i = 0; i<this->stmts_->size(); i++){
+            Statement *stmt = (Statement*)((*stmts_)[i]);
+            stmt->append_symbol_table(table, declared, changed, classes, LCA, methods);
+        }
     }
     void Return::append_symbol_table(
                 std::map<std::string, std::string> &table, 
-                std::vector<std::string> &declared, 
+                std::vector<std::string> &declared,  
+                bool &changed,
                 name_to_class_map const& classes, 
                 LCA_table const& LCA, 
                 method_to_type_map const& methods){
-        if (table.find("return") != table.end()) {
-            table["return"] = LCA.at(table["return"]).at(this->r_expr_->get_type(table, methods));
-        }else{
-            if (this->r_expr_ != NULL) {
-                std::string type = this->r_expr_->get_type(table, methods);
-                if (type != "") {
-                    table["return"] = type;
+        if (this->r_expr_ != NULL) {
+            this->r_expr_->check_decl_before_use(declared, table, methods);
+            std::string type = this->r_expr_->get_type(table, methods);
+            if (type != ""){
+                if (table.find("return") != table.end()) {
+                    if (LCA.at(table["return"]).find(type) != LCA.at(table["return"]).end()){
+                        std::string prev = table["return"];
+                        table["return"] = LCA.at(table["return"]).at(type);
+                        if (table["return"] != prev){
+                            changed = true;
+                        }
+                    }else{
+                        std::cerr << "Error: Method is trying to return an instance of \"" << type << "\" but this does not share a common ancestor with "
+                                << "the existing return type of \"" << table["return"] << "\"" << std::endl;
+                        exit(1);
+                    }
+                }else{
+                    if (type != "") {
+                        std::string prev = table["return"];
+                        table["return"] = type;
+                        if (table["return"] != prev){
+                            changed = true;
+                        }
+                    }
                 }
-            } else {
+            }
+        }else{
+            if (table.find("return") != table.end()) {
+                if (table["return"] != "Nothing") {
+                    std::cerr << "Error: Method cannot return both \"" << table["return"] << "\" and Nothing" << std::endl;
+                    exit(1);
+                }
+            }else{
                 table["return"] = "Nothing";
+                changed = true;
             }
         }
+        
     }
     void Typecase::append_symbol_table(
                 std::map<std::string, std::string> &table, 
-                std::vector<std::string> &declared, 
+                std::vector<std::string> &declared,  
+                bool &changed,
                 name_to_class_map const& classes, 
                 LCA_table const& LCA, 
                 method_to_type_map const& methods){
