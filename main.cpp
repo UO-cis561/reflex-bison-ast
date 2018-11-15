@@ -9,7 +9,7 @@ int main()
         TypeChecker TC(&driver);
         TC.CheckClasses();
         TC.FindLCAs();
-        TC.CheckMethods();
+        TC.CheckMethodsAndTypes();
     } else {
         std::cerr << "Unable to parse!" << std::endl;
     }

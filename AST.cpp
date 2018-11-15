@@ -200,10 +200,10 @@ namespace AST
                 std::vector<std::string> &declared,  
                 bool &changed,
                 name_to_class_map const& classes, 
-                LCA_table const& LCA, 
-                method_to_type_map const& methods){
-        std::string LExpr_name = this->l_expr_->get_ident(table, methods);
-        std::string RExpr_type = this->r_expr_->get_type(table, methods);
+                LCA_table const& LCA){
+        std::string LExpr_name = this->l_expr_->get_ident(table, classes);
+        std::string RExpr_type = this->r_expr_->get_type(table, classes);
+        this->r_expr_->check_decl_before_use(declared, table, classes);
         if (std::find(declared.begin(), declared.end(), LExpr_name) == declared.end()) {
             declared.push_back(LExpr_name);
         }
@@ -226,27 +226,47 @@ namespace AST
                 std::vector<std::string> &declared,  
                 bool &changed,
                 name_to_class_map const& classes, 
-                LCA_table const& LCA, 
-                method_to_type_map const& methods){
+                LCA_table const& LCA){
+        std::vector<std::string> if_declared = declared;
         for (size_t i = 0; i<this->if_stmts_->size(); i++){
             Statement *stmt = (Statement*)((*if_stmts_)[i]);
-            stmt->append_symbol_table(table, declared, changed, classes, LCA, methods);
+            stmt->append_symbol_table(table, if_declared, changed, classes, LCA);
         }
+        std::vector<std::string> else_declared = declared;
         for (size_t i = 0; i<this->else_stmts_->size(); i++){
             Statement *stmt = (Statement*)((*else_stmts_)[i]);
-            stmt->append_symbol_table(table, declared, changed, classes, LCA, methods);
+            stmt->append_symbol_table(table, else_declared, changed, classes, LCA);
         }
+        std::sort(if_declared.begin(), if_declared.end());
+        std::sort(else_declared.begin(), else_declared.end());
+        declared.clear();
+        std::set_intersection(if_declared.begin(), if_declared.end(), else_declared.begin(), else_declared.end(), std::back_inserter(declared));
+        std::cout << "If:";
+        for (std::string str : if_declared){
+            std::cout << str << " ";
+        }
+        std::cout << std::endl;
+        std::cout << "Else:";
+        for (std::string str : else_declared){
+            std::cout << str << " ";
+        }
+        std::cout << std::endl;
+        std::cout << "Intersect:";
+        for (std::string str : declared){
+            std::cout << str << " ";
+        }
+        std::cout << std::endl;
     }
     void While::append_symbol_table(
                 std::map<std::string, std::string> &table, 
                 std::vector<std::string> &declared,  
                 bool &changed,
                 name_to_class_map const& classes, 
-                LCA_table const& LCA, 
-                method_to_type_map const& methods){
+                LCA_table const& LCA){
+        std::vector<std::string> new_declared = declared;
         for (size_t i = 0; i<this->stmts_->size(); i++){
             Statement *stmt = (Statement*)((*stmts_)[i]);
-            stmt->append_symbol_table(table, declared, changed, classes, LCA, methods);
+            stmt->append_symbol_table(table, new_declared, changed, classes, LCA);
         }
     }
     void Return::append_symbol_table(
@@ -254,11 +274,10 @@ namespace AST
                 std::vector<std::string> &declared,  
                 bool &changed,
                 name_to_class_map const& classes, 
-                LCA_table const& LCA, 
-                method_to_type_map const& methods){
+                LCA_table const& LCA){
         if (this->r_expr_ != NULL) {
-            this->r_expr_->check_decl_before_use(declared, table, methods);
-            std::string type = this->r_expr_->get_type(table, methods);
+            this->r_expr_->check_decl_before_use(declared, table, classes);
+            std::string type = this->r_expr_->get_type(table, classes);
             if (type != ""){
                 if (table.find("return") != table.end()) {
                     if (LCA.at(table["return"]).find(type) != LCA.at(table["return"]).end()){
@@ -300,8 +319,20 @@ namespace AST
                 std::vector<std::string> &declared,  
                 bool &changed,
                 name_to_class_map const& classes, 
-                LCA_table const& LCA, 
-                method_to_type_map const& methods){
-        
+                LCA_table const& LCA){
+        this->expr_->check_decl_before_use(declared, table, classes);
+        std::vector<TypeAlt*> typecases = this->get_stmts();
+        for (TypeAlt *typecase : typecases) {
+            std::string name = typecase->get_name();
+            std::string type = typecase->get_type();
+            if (classes.find(type) == classes.end()) {
+                std::cout << "Error: Unknown type \"" << type << "\" used in Typecase" << std::endl;
+                exit(1);
+            }
+            std::vector<std::string> case_declared = declared;
+            for (Statement *stmt : typecase->get_stmts()){
+                stmt->append_symbol_table(table, case_declared, changed, classes, LCA);
+            }
+        }
     }
 }
