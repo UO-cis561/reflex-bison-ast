@@ -22,7 +22,7 @@
 %define parse.trace
 
 %parse-param { yy::Lexer& lexer }  /* Construct parser object with lexer */
-%parse-param { AST::ASTNode **root }
+%parse-param { AST::Root **root }
 
 %code{
     #include "lex.yy.h"
@@ -32,7 +32,7 @@
 %union {
     int            num;
     char           *str;
-    AST::ASTNode   *node;
+    AST::Statement *stmt;
     AST::Block     *block;
     AST::Class     *clazz;
     AST::Ident     *ident;
@@ -57,7 +57,7 @@
 %token EQUALS ATMOST ATLEAST AND OR NOT
 %token IF ELIF ELSE WHILE
 // Abstract syntax tree nodes
-%type <block> program opt_classes classes opt_statements statements opt_methods methods opt_else else
+%type <block> opt_classes classes opt_statements statements opt_methods methods opt_else else
 %type <actuals> opt_args args
 %type <clazz> class
 %type <ident> opt_extends extends opt_type
@@ -71,7 +71,7 @@
 %type <typealts> type_alternatives
 %type <typealt> type_alternative
 %type <typecase> typecase
-%type <node> statement
+%type <stmt> statement
 %left AND OR NOT
 %left EQUALS ATMOST '<' ATLEAST '>'
 %left '-' '+'
@@ -83,10 +83,7 @@
 %%
 
 program: opt_classes opt_statements { 
-    $$ = new AST::Block(); 
-    $$->append($1); 
-    $$->append($2); 
-    *root = $$; 
+    *root = new AST::Root($1, $2); 
 }
 
 opt_classes: classes { $$ = $1; }

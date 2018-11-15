@@ -56,6 +56,12 @@ namespace AST
         this->json_list(out, indent, "stmts_", this->stmts_);
         this->json_close(out, indent);
     }
+    void Root::json(std::ostream &out, unsigned int indent){
+        this->json_head(out, indent, "Program");
+        this->json_child(out, indent, "classes_", this->classes_);
+        this->json_child(out, indent, "stmts_", this->stmts_);
+        this->json_close(out, indent);
+    }
     void Ident::json(std::ostream &out, unsigned int indent){
         json_head(out, indent, "Ident");
         this->json_string(out, indent, "text_", this->text_);
@@ -185,5 +191,68 @@ namespace AST
         this->json_child(out, indent, "expr_", this->expr_);
         this->json_list(out, indent, "stmts_", this->stmts_);
         this->json_close(out, indent);
+    }
+    void Arguments::append(class RExpr *arg) { 
+        args_.push_back(arg); 
+    }
+    void Assignment::append_symbol_table(
+                std::map<std::string, std::string> &table, 
+                std::vector<std::string> &declared, 
+                name_to_class_map const& classes, 
+                LCA_table const& LCA, 
+                method_to_type_map const& methods){
+        std::string LExpr_name = this->l_expr_->get_ident(table, methods);
+        std::string RExpr_type = this->r_expr_->get_type(table, methods);
+        if (classes.find(RExpr_type) != classes.end()) {
+            if (table.find(LExpr_name) != table.end()) {
+                table[LExpr_name] = LCA.at(table[LExpr_name]).at(RExpr_type);
+            }else{
+                table[LExpr_name] = RExpr_type;
+            }
+        }
+        
+    }
+    void If::append_symbol_table(
+                std::map<std::string, std::string> &table, 
+                std::vector<std::string> &declared, 
+                name_to_class_map const& classes, 
+                LCA_table const& LCA, 
+                method_to_type_map const& methods){
+    
+    }
+    void While::append_symbol_table(
+                std::map<std::string, std::string> &table, 
+                std::vector<std::string> &declared, 
+                name_to_class_map const& classes, 
+                LCA_table const& LCA, 
+                method_to_type_map const& methods){
+        
+    }
+    void Return::append_symbol_table(
+                std::map<std::string, std::string> &table, 
+                std::vector<std::string> &declared, 
+                name_to_class_map const& classes, 
+                LCA_table const& LCA, 
+                method_to_type_map const& methods){
+        if (table.find("return") != table.end()) {
+            table["return"] = LCA.at(table["return"]).at(this->r_expr_->get_type(table, methods));
+        }else{
+            if (this->r_expr_ != NULL) {
+                std::string type = this->r_expr_->get_type(table, methods);
+                if (type != "") {
+                    table["return"] = type;
+                }
+            } else {
+                table["return"] = "Nothing";
+            }
+        }
+    }
+    void Typecase::append_symbol_table(
+                std::map<std::string, std::string> &table, 
+                std::vector<std::string> &declared, 
+                name_to_class_map const& classes, 
+                LCA_table const& LCA, 
+                method_to_type_map const& methods){
+        
     }
 }
