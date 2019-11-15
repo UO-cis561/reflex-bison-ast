@@ -27,6 +27,11 @@ namespace AST {
     class ASTNode {
     public:
         virtual int eval(EvalContext &ctx) = 0;        // Immediate evaluation
+        /* Code generation: Of an lvalue, of an rvalue, and of a branch */
+        virtual void gen_rvalue(CodegenContext& ctx, std::string target_reg)_ = 0;  // Place value in target_reg
+        virtual void std::string gen_lvalue(CodegenContext& ctx, std::string address_reg) = 0; // Point addr to loc
+        virtual void gen_branch(CodegenContext& ctx, std::string true_branch, std::string false_branch) = 0;
+        /* Dump JSON representation */
         virtual void json(std::ostream& out, AST_print_context& ctx) = 0;  // Json string representation
         std::string str() {
             std::stringstream ss;
