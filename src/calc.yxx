@@ -80,7 +80,10 @@ stmt: assignment { $$ = $1; }
     ;
 
 ifstmt:  IF expr THEN block if_alternatives FI
- {    $$ = new AST::If(*$2, *$4, *$5);  } ;
+ {    $$ = new AST::If(*$2, *$4, *$5);  }
+      |  IF error FI
+ { $$ = 0; }
+ ;
 
 if_alternatives:   /* empty */  { $$ = new AST::Block(); };
 if_alternatives:   ELSE block   { $$ = $2; };
