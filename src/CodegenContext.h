@@ -51,6 +51,8 @@ public:
         if (local_vars.count(ident) == 0) {
             std::string internal = std::string("calc_var_") + ident;
             local_vars[ident] = internal;
+            // We'll need a declaration in the generated code
+            this->emit(std::string("int ") + internal + "; // Source variable " + ident);
             return internal;
         }
         return local_vars[ident];
