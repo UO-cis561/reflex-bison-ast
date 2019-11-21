@@ -3,6 +3,7 @@
 //
 
 #include "ASTNode.h"
+#include <stdlib.h>
 
 namespace AST {
     // Abstract syntax tree.  ASTNode is abstract base class for all other nodes.
@@ -11,7 +12,9 @@ namespace AST {
     // a few require more code.
 
 
-    // Binary operators have an 'eval' method
+    /* ============   Immediate Evaluation (Calculator Model) ================== */
+
+    /* Binary operators */
     int Plus::eval(EvalContext &ctx) { return left_.eval(ctx) + right_.eval(ctx); }
 
     int Times::eval(EvalContext &ctx) { return left_.eval(ctx) * right_.eval(ctx); }
@@ -63,6 +66,126 @@ namespace AST {
         }
         return falsepart_.eval(ctx);
     }
+
+    int AsBool::eval(EvalContext &ctx) {
+        // For calculator mode, we will just use the
+        // arithmetic value as a boolean, as C does.
+        return  left_.eval(ctx);
+    }
+    /* =================== Translation to C code (Compiler mode) ================ */
+    void Block::gen_rvalue(CodegenContext& ctx, std::string target_reg) {
+        for (auto &s: stmts_) {
+            s->gen_rvalue(ctx, target_reg);
+        }
+    }
+
+    void Assign::gen_rvalue(CodegenContext& ctx, std::string target_reg) {
+        std::string loc = lexpr_.gen_lvalue(ctx);
+        rexpr_.gen_rvalue(ctx, target_reg);
+        /* Store the value in the location */
+        ctx.emit(loc + "= " + target_reg + ";");
+    }
+
+    /* IF is a statement that executes either its true branch
+     * or its false branch.  The value it places into the target
+     * should be the value of whichever branch is taken.
+     */
+    void If::gen_rvalue(CodegenContext &ctx, std::string target_reg)  {
+        std::string thenpart = ctx.new_branch_label("then");
+        std::string elsepart = ctx.new_branch_label("else");
+        std::string endpart = ctx.new_branch_label("endif");
+        cond_.gen_branch(ctx, thenpart, elsepart);
+        /* Generate the 'then' part here */
+        ctx.emit(thenpart + ":");
+        truepart_.gen_rvalue(ctx, target_reg);
+        ctx.emit(std::string("goto ") + endpart + ";");
+        /* Generate the 'else' part here */
+        ctx.emit(elsepart + ":");
+        falsepart_.gen_rvalue(ctx, target_reg);
+        /* That's all, folks */
+        ctx.emit(endpart + ":");
+    }
+
+    void AsBool::gen_branch(CodegenContext &ctx, std::string true_branch, std::string false_branch) {
+        // At present, we don't have 'and' and 'or'
+        std::string reg = ctx.alloc_reg();
+        left_.gen_rvalue(ctx, reg);
+        ctx.emit(std::string("if (") + reg + ") goto " + true_branch + ";");
+        ctx.emit(std::string("goto ") + false_branch + ";");
+        ctx.free_reg(reg);
+    }
+
+    /* In the Quack AST, there is a separate "Load" node that
+     * converts an lexpr to an rexpr.  In the calculator there
+     * is no separate "Load" node, so I need both gen_lvalue
+     * and gen_rvalue for an Ident.
+     * Note this may generate a declaration in the C code,
+     * so it should be called *between* complete C statements.
+     */
+    std::string Ident::gen_lvalue(CodegenContext& ctx) {
+        return ctx.get_local_var(text_);
+    }
+
+    /* For an r_value, we load the value of the variable into a
+     * "register", which in our C code is just a temporary variable.
+     */
+    void Ident::gen_rvalue(CodegenContext &ctx, std::string target_reg) {
+        /* The lvalue, i.e., address of memory */
+        std::string loc = ctx.get_local_var(text_);
+        /* In assembly language we would generate a LOAD instruction;
+         * in C we generate an assignment.
+         */
+        ctx.emit(target_reg + " = " + loc + "; // LOAD");
+    }
+
+    /* Constants have rvalues but not lvalues, because you should
+     * really not change the values of your constants.
+     */
+    void IntConst::gen_rvalue(CodegenContext &ctx, std::string target_reg) {
+        ctx.emit(target_reg + " = " + std::to_string(value_)
+            + "; // LOAD constant value");
+    }
+
+    /* Binary operators */
+
+    void Plus::gen_rvalue(CodegenContext &ctx, std::string target_reg) {
+        left_.gen_rvalue(ctx, target_reg);
+        std::string right_reg = ctx.alloc_reg();
+        right_.gen_rvalue(ctx, right_reg);
+        ctx.emit(target_reg + " = (" + target_reg + ") + ("
+             + right_reg + "); // Plus");
+        ctx.free_reg(right_reg);
+    }
+
+    void Minus::gen_rvalue(CodegenContext &ctx, std::string target_reg) {
+        left_.gen_rvalue(ctx, target_reg);
+        std::string right_reg = ctx.alloc_reg();
+        right_.gen_rvalue(ctx, right_reg);
+        ctx.emit(target_reg + " = (" + target_reg + ") - ("
+                 + right_reg + "); // Minus");
+        ctx.free_reg(right_reg);
+    }
+
+    void Times::gen_rvalue(CodegenContext &ctx, std::string target_reg) {
+        left_.gen_rvalue(ctx, target_reg);
+        std::string right_reg = ctx.alloc_reg();
+        right_.gen_rvalue(ctx, right_reg);
+        ctx.emit(target_reg + " = (" + target_reg + ") * ("
+                 + right_reg + "); // Times");
+        ctx.free_reg(right_reg);
+    }
+
+    void Div::gen_rvalue(CodegenContext &ctx, std::string target_reg) {
+        left_.gen_rvalue(ctx, target_reg);
+        std::string right_reg = ctx.alloc_reg();
+        right_.gen_rvalue(ctx, right_reg);
+        ctx.emit(target_reg + " = (" + target_reg + ") / ("
+                 + right_reg + "); // Div");
+        ctx.free_reg(right_reg);
+    }
+    
+
+    /* ========================================== */
 
     // JSON representation of all the concrete node types.
     // This might be particularly useful if I want to do some
@@ -131,6 +254,12 @@ namespace AST {
         json_child("cond_", cond_, out, ctx);
         json_child("truepart_", truepart_, out, ctx);
         json_child("falsepart_", falsepart_, out, ctx, ' ');
+        json_close(out, ctx);
+    }
+
+    void AsBool::json(std::ostream& out, AST_print_context& ctx) {
+        json_head("AsBool", out, ctx);
+        json_child("left_", left_, out, ctx);
         json_close(out, ctx);
     }
 

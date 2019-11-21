@@ -4,10 +4,11 @@
 #
 cmake_minimum_required(VERSION 3.13)
 project(AST
-        VERSION 0.1
+        VERSION 0.2
         DESCRIPTION "Demo of parsing and AST building for CIS 461/561"
         LANGUAGES CXX
         )
+
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_COMPILER g++)
 

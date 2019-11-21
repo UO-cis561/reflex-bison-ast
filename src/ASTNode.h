@@ -8,6 +8,8 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <iostream>
+#include <assert.h>
 #include "CodegenContext.h"
 #include "EvalContext.h"
 
@@ -24,16 +26,38 @@ namespace AST {
         void dedent() { --indent_; }
     };
 
+
     class ASTNode {
     public:
         virtual int eval(EvalContext &ctx) = 0;        // Immediate evaluation
+
         /* Code generation: Of an lvalue, of an rvalue, and of a branch */
-        virtual void gen_rvalue(CodegenContext& ctx, std::string target_reg)_ = 0;  // Place value in target_reg
-        virtual void std::string gen_lvalue(CodegenContext& ctx, std::string address_reg) = 0; // Point addr to loc
-        virtual void gen_branch(CodegenContext& ctx, std::string true_branch, std::string false_branch) = 0;
+        /* Each subtree may implement some of these and not others, so the default
+         * implementations are code-generation errors.
+         */
+        virtual void gen_rvalue(CodegenContext& ctx, std::string target_reg) {
+            std::cerr << "*** No rvalue for this node ***" << std::endl;
+            assert(false);  // Invoke the debugger!
+        }
+        /* For the calculator, an lvalue will be the name of a local
+         * variable in the generated C code.  In assembly language,
+         * it would be a register holding the memory address of the
+         * location, which might be calculated in various ways such
+         * as adding an offset to the beginning of an array.
+         */
+        virtual std::string gen_lvalue(CodegenContext& ctx) {
+            std::cerr << "*** No lvalue for this node ***" << std::endl;
+            assert(false);
+        }
+        virtual void gen_branch(CodegenContext& ctx, std::string true_branch, std::string false_branch) {
+            std::cerr << "*** No branching on this node ****" << std::endl;
+            assert(false);
+        }
+
         /* Dump JSON representation */
-        virtual void json(std::ostream& out, AST_print_context& ctx) = 0;  // Json string representation
-        std::string str() {
+        virtual void json(std::ostream& out, AST_print_context& ctx) = 0;
+
+        std::string str() {  // String representation is JSON
             std::stringstream ss;
             AST_print_context ctx;
             json(ss, ctx);
@@ -56,6 +80,7 @@ namespace AST {
         explicit Block() : stmts_{std::vector<ASTNode*>()} {}
         void append(ASTNode* stmt) { stmts_.push_back(stmt); }
         int eval(EvalContext& ctx) override;
+        void gen_rvalue(CodegenContext& ctx, std::string target_reg) override;
         void json(std::ostream& out, AST_print_context& ctx) override;
      };
 
@@ -89,9 +114,11 @@ namespace AST {
         ASTNode &rexpr_;
     public:
         Assign(LExpr &lexpr, ASTNode &rexpr) :
-           lexpr_{lexpr}, rexpr_{rexpr} {}
+           lexpr_{lexpr}, rexpr_{rexpr} {};
+        void gen_rvalue(CodegenContext& ctx, std::string target_reg) override;
         void json(std::ostream& out, AST_print_context& ctx) override;
         int eval(EvalContext& ctx) override;
+        void r_eval(CodegenContext& ctx, std::string target_reg);
     };
 
     class If : public ASTNode {
@@ -101,9 +128,24 @@ namespace AST {
     public:
         explicit If(ASTNode &cond, Block &truepart, Block &falsepart) :
             cond_{cond}, truepart_{truepart}, falsepart_{falsepart} { };
+        void gen_rvalue(CodegenContext& ctx, std::string target_reg) override;
         void json(std::ostream& out, AST_print_context& ctx) override;
         int eval(EvalContext& ctx) override;
+    };
 
+    /* We need a node to represent interpretation of an r-expression
+     * as a boolean.  While r-expressions have a gen_rvalue method,
+     * we need a gen_branch method for r-expressions that are
+     * interpreted as booleans.
+     */
+    class AsBool : public ASTNode {
+        ASTNode &left_;
+    public:
+        explicit AsBool(ASTNode &left) : left_{left} {}
+        void gen_branch(CodegenContext& ctx,
+                std::string true_branch, std::string false_branch) override;
+        void json(std::ostream& out, AST_print_context& ctx) override;
+        int eval(EvalContext& ctx) override;
     };
 
     /* Identifiers like x and literals like 42 are the
@@ -116,6 +158,8 @@ namespace AST {
         std::string text_;
     public:
         explicit Ident(std::string txt) : text_{txt} {}
+        void gen_rvalue(CodegenContext& ctx, std::string target_reg) override;
+        std::string gen_lvalue(CodegenContext& ctx) override;
         void json(std::ostream& out, AST_print_context& ctx) override;
         int eval(EvalContext &ctx) override;
         std::string l_eval(EvalContext& ctx) override { return text_; }
@@ -125,6 +169,7 @@ namespace AST {
         int value_;
     public:
         explicit IntConst(int v) : value_{v} {}
+        void gen_rvalue(CodegenContext& ctx, std::string target_reg) override;
         void json(std::ostream& out, AST_print_context& ctx) override;
         int eval(EvalContext &ctx) override { return value_; }
     };
@@ -146,6 +191,7 @@ namespace AST {
 
     class Plus : public BinOp {
     public:
+        void gen_rvalue(CodegenContext& ctx, std::string target_reg) override;
         int eval(EvalContext& ctx) override;
         Plus(ASTNode &l, ASTNode &r) :
                 BinOp(std::string("Plus"),  l, r) {};
@@ -153,6 +199,7 @@ namespace AST {
 
     class Minus : public BinOp {
     public:
+        void gen_rvalue(CodegenContext& ctx, std::string target_reg) override;
         int eval(EvalContext& ctx) override;
         Minus(ASTNode &l, ASTNode &r) :
             BinOp(std::string("Minus"),  l, r) {};
@@ -160,6 +207,7 @@ namespace AST {
 
     class Times : public BinOp {
     public:
+        void gen_rvalue(CodegenContext& ctx, std::string target_reg) override;
         int eval(EvalContext& ctx) override;
         Times(ASTNode &l, ASTNode &r) :
                 BinOp(std::string("Times"),  l, r) {};
@@ -167,6 +215,7 @@ namespace AST {
 
     class Div : public BinOp {
     public:
+        void gen_rvalue(CodegenContext& ctx, std::string target_reg) override;
         int eval(EvalContext& ctx) override;
         Div (ASTNode &l, ASTNode &r) :
                 BinOp(std::string("Div"),  l, r) {};
