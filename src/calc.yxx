@@ -90,7 +90,8 @@ if_alternatives:   /* empty */  { $$ = new AST::Block(); };
 if_alternatives:   ELSE block   { $$ = $2; };
 if_alternatives:   ELIF expr THEN block if_alternatives
  {  $$ = new AST::Block();
-    $$->append(new AST::If(*$2, *$4, *$5));
+    AST::ASTNode* cond = new AST::AsBool(*$2);
+    $$->append(new AST::If(*cond, *$4, *$5));
  };
 
 
