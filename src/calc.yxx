@@ -80,7 +80,8 @@ stmt: assignment { $$ = $1; }
     ;
 
 ifstmt:  IF expr THEN block if_alternatives FI
- {    $$ = new AST::If(*$2, *$4, *$5);  }
+ {    AST::ASTNode* cond = new AST::AsBool(*$2);
+      $$ = new AST::If(*cond, *$4, *$5);  }
       |  IF error FI
  { $$ = 0; }
  ;
