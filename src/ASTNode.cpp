@@ -23,6 +23,14 @@ namespace AST {
 
     int Div::eval(EvalContext &ctx) { return left_.eval(ctx) / right_.eval(ctx); }
 
+    /* Comparisons work like binary operators in calculator mode */
+    int Less::eval(EvalContext &ctx) { return left_.eval(ctx) < right_.eval(ctx); }
+    int AtMost::eval(EvalContext &ctx) { return left_.eval(ctx) <= right_.eval(ctx); }
+    int AtLeast::eval(EvalContext &ctx) { return left_.eval(ctx) >= right_.eval(ctx); }
+    int Greater::eval(EvalContext &ctx) { return left_.eval(ctx) > right_.eval(ctx); }
+    int Equals::eval(EvalContext &ctx) { return left_.eval(ctx) == right_.eval(ctx); }
+
+
     // A block is evaluated just by evaluating each statement in the block.
     // We'll return the value_ of the last statement, although it is useless.
     // The value_ of an empty block is zero.
@@ -104,6 +112,17 @@ namespace AST {
         falsepart_.gen_rvalue(ctx, target_reg);
         /* That's all, folks */
         ctx.emit(endpart + ":");
+    }
+
+    void Compare::gen_branch(CodegenContext &ctx, std::string true_branch, std::string false_branch) {
+        std::string left_reg = ctx.alloc_reg();
+        left_.gen_rvalue(ctx, left_reg);
+        std::string right_reg = ctx.alloc_reg();
+        right_.gen_rvalue(ctx, right_reg);
+        ctx.emit(std::string("if (") + left_reg + c_compare_op_ + right_reg + ") goto " + true_branch + ";");
+        ctx.emit(std::string("goto ") + false_branch + ";");
+        ctx.free_reg(left_reg);
+        ctx.free_reg(right_reg);
     }
 
     void AsBool::gen_branch(CodegenContext &ctx, std::string true_branch, std::string false_branch) {

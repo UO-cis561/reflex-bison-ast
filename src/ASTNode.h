@@ -221,6 +221,52 @@ namespace AST {
                 BinOp(std::string("Div"),  l, r) {};
     };
 
+    // For comparisons, we want to factor out a bit more of the common
+    // code generation
+
+    class Compare : public BinOp {
+    protected:
+        std::string c_compare_op_;
+        Compare(std::string sym,  std::string op, ASTNode &l, ASTNode &r) :
+            BinOp(sym, l, r), c_compare_op_{op} {};
+        void gen_branch(CodegenContext& ctx, std::string true_branch, std::string false_branch) override;
+    };
+
+    class Less : public Compare {
+    public:
+        Less (ASTNode &l, ASTNode &r) :
+            Compare("Less", "<",  l, r) {};
+        int eval(EvalContext& ctx) override;
+    };
+
+    class AtMost : public Compare {
+    public:
+        AtMost (ASTNode &l, ASTNode &r) :
+                Compare("AtMost", "<=",  l, r) {};
+        int eval(EvalContext& ctx) override;
+    };
+
+    class AtLeast : public Compare {
+    public:
+        AtLeast (ASTNode &l, ASTNode &r) :
+                Compare("AtLeast", ">=",  l, r) {};
+        int eval(EvalContext& ctx) override;
+    };
+
+    class Greater : public Compare {
+    public:
+        Greater (ASTNode &l, ASTNode &r) :
+                Compare("Less", "<", l, r) {};
+        int eval(EvalContext& ctx) override;
+    };
+
+    class Equals : public Compare {
+    public:
+        Equals (ASTNode &l, ASTNode &r) :
+                Compare("Equals", "==", l, r) {};
+        int eval(EvalContext& ctx) override;
+    };
+
 
 }
 #endif //REFLEXIVE_ASTNODE_H

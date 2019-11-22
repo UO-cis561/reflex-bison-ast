@@ -48,16 +48,23 @@
 %token PLUS  MINUS TIMES DIV GETS
 %token IF THEN ELSE FI ELIF
 %token LPAREN RPAREN
+// Added operations that yield boolean values
+%token ATMOST ATLEAST EQUALS
+%token LESS GREATER
+// Add here: AND and OR with short-circuit evaluation
 
 // Abstract syntax tree nodes
 %type <node> expr leaf program stmt assignment
 %type <block> block if_alternatives
 %type <node> ifstmt
+%type <node> cond
+
 
 // Precedence.  We are using an ambiguous expression grammar
 // for compactness.  We declare operator precedence from lowest
 // to highest, with associativity, e.g., MINUS is left_ associative
 // so a-b-c is (a-b)-c and not a-(b-c).
+//
 %left MINUS PLUS
 %left TIMES DIV
 
@@ -79,22 +86,32 @@ stmt: assignment { $$ = $1; }
     | ifstmt { $$ = $1; }
     ;
 
-ifstmt:  IF expr THEN block if_alternatives FI
- {    AST::ASTNode* cond = new AST::AsBool(*$2);
-      $$ = new AST::If(*cond, *$4, *$5);  }
+ifstmt:  IF cond THEN block if_alternatives FI
+ {
+      $$ = new AST::If(*$2,  *$4, *$5);  }
       |  IF error FI
  { $$ = 0; }
  ;
 
 if_alternatives:   /* empty */  { $$ = new AST::Block(); };
 if_alternatives:   ELSE block   { $$ = $2; };
-if_alternatives:   ELIF expr THEN block if_alternatives
+if_alternatives:   ELIF cond THEN block if_alternatives
  {  $$ = new AST::Block();
     AST::ASTNode* cond = new AST::AsBool(*$2);
     $$->append(new AST::If(*cond, *$4, *$5));
  };
 
+    /* 'cond' is a boolean expression that is generally interpreted
+     * as conditional branching, as in an if or while statement.
+     */ 
 
+ cond:  expr LESS expr      {  $$ = new AST::Less(*$1, *$3); }
+    |   expr GREATER expr   {  $$ = new AST::Greater(*$1, *$3); }
+    |   expr ATMOST expr    {  $$ = new AST::AtMost(*$1, *$3); }
+    |   expr ATLEAST expr   {  $$ = new AST::AtLeast(*$1, *$3); }
+    |   expr EQUALS expr    {  $$ = new AST::Equals(*$1, *$3); }
+    |   expr                {  $$ = new AST::AsBool(*$1);  }
+    ;
 
 assignment: IDENT GETS expr {
         AST::Ident* lhs = new AST::Ident($1);

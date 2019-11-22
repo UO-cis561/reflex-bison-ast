@@ -12,12 +12,24 @@
 
 %%
    /* Punctuation and keywords don't need values. */
+
 \+  {  return yy::parser::token::PLUS; }
 \*  {  return yy::parser::token::TIMES; }
 \-  {  return yy::parser::token::MINUS; }
 \/  {  return yy::parser::token::DIV; }
+
 \(  {  return yy::parser::token::LPAREN; }
 \)  {   return yy::parser::token::RPAREN; }
+
+  /* Boolean-valued expressions */
+<  {   return yy::parser::token::LESS; }
+>  {   return yy::parser::token::GREATER; }
+>= {   return yy::parser::token::ATLEAST; }
+<= {   return yy::parser::token::ATMOST; }
+== {   return yy::parser::token::EQUALS; }
+
+    /* Keywords for if/then/elif/else/fi construct */
+
 if   {  return yy::parser::token::IF; }
 then   {  return yy::parser::token::THEN; }
 else   {  return yy::parser::token::ELSE; }
