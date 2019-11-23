@@ -40,6 +40,7 @@ private:
 void generate_code(AST::ASTNode *root) {
     CodegenContext ctx(std::cout);
     // Prologue
+    ctx.emit("#include <stdio.h>");
     ctx.emit("int main(int argc, char **argv) {");
     // Body of generated code
     std::string target = ctx.alloc_reg();

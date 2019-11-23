@@ -36,6 +36,11 @@ else   {  return yy::parser::token::ELSE; }
 elif   {  return yy::parser::token::ELIF; }
 fi     {  return yy::parser::token::FI; }
 
+    /* Boolean connectives */
+and     { return yy::parser::token::AND; }
+or      { return yy::parser::token::OR;  }
+not     { return yy::parser::token::NOT; }
+
  /* Integer literals and identifiers do need semantic values,
   * the integer value or the identifier text.
   */

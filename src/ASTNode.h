@@ -221,6 +221,35 @@ namespace AST {
                 BinOp(std::string("Div"),  l, r) {};
     };
 
+    // Boolean combinations and, or, not are short-circuit evaluated.
+    // The BinOp superclass will be ok, be we need to add a
+    // gen_branch method for each.
+    class And : public BinOp {
+    public:
+        void gen_branch(CodegenContext& ctx, std::string true_branch, std::string false_branch) override;
+        int eval(EvalContext& ctx) override;
+        And (ASTNode &l, ASTNode &r) :
+                BinOp(std::string("And"),  l, r) {};
+    };
+
+    class Or : public BinOp {
+    public:
+        void gen_branch(CodegenContext& ctx, std::string true_branch, std::string false_branch) override;
+        int eval(EvalContext& ctx) override;
+        Or (ASTNode &l, ASTNode &r) :
+                BinOp(std::string("Or"),  l, r) {};
+    };
+
+    class Not : public ASTNode {
+        ASTNode& left_;
+    public:
+        explicit Not(ASTNode &l) : left_{l} {}
+        void gen_branch(CodegenContext& ctx, std::string true_branch, std::string false_branch) override;
+        int eval(EvalContext& ctx) override;
+        void json(std::ostream& out, AST_print_context& ctx) override;
+    };
+
+
     // For comparisons, we want to factor out a bit more of the common
     // code generation
 
@@ -266,6 +295,8 @@ namespace AST {
                 Compare("Equals", "==", l, r) {};
         int eval(EvalContext& ctx) override;
     };
+
+
 
 
 }

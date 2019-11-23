@@ -23,13 +23,17 @@ namespace AST {
 
     int Div::eval(EvalContext &ctx) { return left_.eval(ctx) / right_.eval(ctx); }
 
+    // C is already short-circuit for && and || so we can use them directly for calculator mode
+    int And::eval(EvalContext &ctx) { return left_.eval(ctx) && right_.eval(ctx); }
+    int Or::eval(EvalContext &ctx) { return left_.eval(ctx) || right_.eval(ctx); }
+    int Not::eval(EvalContext &ctx) { return ! (left_.eval(ctx)); }
+
     /* Comparisons work like binary operators in calculator mode */
     int Less::eval(EvalContext &ctx) { return left_.eval(ctx) < right_.eval(ctx); }
     int AtMost::eval(EvalContext &ctx) { return left_.eval(ctx) <= right_.eval(ctx); }
     int AtLeast::eval(EvalContext &ctx) { return left_.eval(ctx) >= right_.eval(ctx); }
     int Greater::eval(EvalContext &ctx) { return left_.eval(ctx) > right_.eval(ctx); }
     int Equals::eval(EvalContext &ctx) { return left_.eval(ctx) == right_.eval(ctx); }
-
 
     // A block is evaluated just by evaluating each statement in the block.
     // We'll return the value_ of the last statement, although it is useless.
@@ -80,6 +84,9 @@ namespace AST {
         // arithmetic value as a boolean, as C does.
         return  left_.eval(ctx);
     }
+
+
+
     /* =================== Translation to C code (Compiler mode) ================ */
     void Block::gen_rvalue(CodegenContext& ctx, std::string target_reg) {
         for (auto &s: stmts_) {
@@ -104,14 +111,14 @@ namespace AST {
         std::string endpart = ctx.new_branch_label("endif");
         cond_.gen_branch(ctx, thenpart, elsepart);
         /* Generate the 'then' part here */
-        ctx.emit(thenpart + ":");
+        ctx.emit(thenpart + ": ;");
         truepart_.gen_rvalue(ctx, target_reg);
         ctx.emit(std::string("goto ") + endpart + ";");
         /* Generate the 'else' part here */
-        ctx.emit(elsepart + ":");
+        ctx.emit(elsepart + ": ;");
         falsepart_.gen_rvalue(ctx, target_reg);
         /* That's all, folks */
-        ctx.emit(endpart + ":");
+        ctx.emit(endpart + ": ;");
     }
 
     void Compare::gen_branch(CodegenContext &ctx, std::string true_branch, std::string false_branch) {
@@ -123,6 +130,24 @@ namespace AST {
         ctx.emit(std::string("goto ") + false_branch + ";");
         ctx.free_reg(left_reg);
         ctx.free_reg(right_reg);
+    }
+
+    void And::gen_branch(CodegenContext &ctx, std::string true_branch, std::string false_branch) {
+        std::string right_part = ctx.new_branch_label("and");
+        left_.gen_branch(ctx, right_part, false_branch);
+        ctx.emit(right_part + ": ;");
+        right_.gen_branch(ctx, true_branch, false_branch);
+    }
+
+    void Or::gen_branch(CodegenContext &ctx, std::string true_branch, std::string false_branch) {
+        std::string right_part = ctx.new_branch_label("or");
+        left_.gen_branch(ctx, right_part, true_branch);
+        ctx.emit(right_part + ": ;");
+        right_.gen_branch(ctx, true_branch, false_branch);
+    }
+
+    void Not::gen_branch(CodegenContext &ctx, std::string true_branch, std::string false_branch) {
+        left_.gen_branch(ctx, false_branch, true_branch);
     }
 
     void AsBool::gen_branch(CodegenContext &ctx, std::string true_branch, std::string false_branch) {
@@ -202,7 +227,6 @@ namespace AST {
                  + right_reg + "); // Div");
         ctx.free_reg(right_reg);
     }
-    
 
     /* ========================================== */
 
@@ -212,7 +236,6 @@ namespace AST {
     // do this by emitting into a stream.
 
     // --- Utility functions used by node-specific json output methods
-
 
     /* Indent to a given level */
     void ASTNode::json_indent(std::ostream& out, AST_print_context& ctx) {
@@ -273,6 +296,12 @@ namespace AST {
         json_child("cond_", cond_, out, ctx);
         json_child("truepart_", truepart_, out, ctx);
         json_child("falsepart_", falsepart_, out, ctx, ' ');
+        json_close(out, ctx);
+    }
+
+    void Not::json(std::ostream& out, AST_print_context& ctx) {
+        json_head("Not", out, ctx);
+        json_child("left_", left_, out, ctx);
         json_close(out, ctx);
     }
 
