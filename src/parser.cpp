@@ -9,11 +9,10 @@
 #include "Messages.h"
 #include <unistd.h>
 #include <iostream>
-#include <fstream>
 
 class Driver {
 public:
-    explicit Driver(reflex::Input in) : lexer(in), parser(new yy::parser(lexer, &root))
+    explicit Driver(const reflex::Input in) : lexer(in), parser(new yy::parser(lexer, &root))
        { root = nullptr; }
     ~Driver() { delete parser; }
     AST::ASTNode* parse() {
@@ -53,7 +52,8 @@ void generate_code(AST::ASTNode *root) {
 
 int main(int argc, char **argv)
 {
-    std::istream *source;
+    AST::ASTNode* root;
+    // std::istream *source;
     /* Choices of output */
     int json = 0;
     int codegen = 0;
@@ -66,24 +66,21 @@ int main(int argc, char **argv)
     }
     // The remaining argument should be a file name
     if (optind < argc) {
-        std::cout << "Reading from file " << argv[1] << std::endl;
-        std::ifstream srcfile;
-        srcfile.open(argv[optind], std::ifstream::in);
-        source = &srcfile;
-        if (! srcfile.is_open()) {
-            std::cerr << "Failed to open " << argv[optind] << std::endl;
+        const char* path = argv[optind];
+        std::cout << "Reading from file " << path << std::endl;
+        FILE *f = fopen(path, "r");
+        if (! f) {
+            std::cerr << "Open failed on '" << path << "'" << std::endl;
             exit(5);
-        } else {
-            std::cerr << "Opened " << argv[optind] << std::endl;
-            std::cerr <<  "Abandon hope, I don't seem to be able to read files " << std::endl;
         }
+        std::cerr << "Opened " << argv[optind] << std::endl;
+        Driver driver(f);
+        root = driver.parse();
     } else {
         std::cout << "Reading from stdin" << std::endl;
-        source = &std::cin;
+        Driver driver(&std::cin);
+        root = driver.parse();
     }
-
-    Driver driver(source);
-    AST::ASTNode* root = driver.parse();
     if (root != nullptr) {
         std::cout << "Parsed!\n";
         if (json) {
