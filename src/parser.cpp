@@ -67,7 +67,7 @@ int main(int argc, char **argv)
     // The remaining argument should be a file name
     if (optind < argc) {
         const char* path = argv[optind];
-        std::cout << "Reading from file " << path << std::endl;
+        std::cerr << "Reading from file " << path << std::endl;
         FILE *f = fopen(path, "r");
         if (! f) {
             std::cerr << "Open failed on '" << path << "'" << std::endl;
@@ -77,12 +77,12 @@ int main(int argc, char **argv)
         Driver driver(f);
         root = driver.parse();
     } else {
-        std::cout << "Reading from stdin" << std::endl;
+        std::cerr << "Reading from stdin" << std::endl;
         Driver driver(&std::cin);
         root = driver.parse();
     }
     if (root != nullptr) {
-        std::cout << "Parsed!\n";
+        std::cerr << "Parsed!\n";
         if (json) {
             AST::AST_print_context context;
             root->json(std::cout, context);
@@ -91,6 +91,7 @@ int main(int argc, char **argv)
         if (calcmode) {
             auto ctx = EvalContext();
             std::cout << "Evaluates to " << root->eval(ctx) << std::endl;
+            exit(0);
         }
         if (codegen) {
             std::cout << "/* BEGIN GENERATED CODE */" << std::endl;
@@ -98,6 +99,7 @@ int main(int argc, char **argv)
             std::cout << "/* END GENERATED CODE */" << std::endl;
         }
     } else {
-        std::cout << "Extracted root was nullptr" << std::endl;
+        std::cerr << "Extracted root was nullptr" << std::endl;
+        exit(1);
     }
 }
